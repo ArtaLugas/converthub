@@ -6,8 +6,8 @@ dist/
 build/
 
 # File temporer hasil unggah & konversi — jangan pernah di-commit
-converthub/server/temp/
-!converthub/server/temp/.gitkeep
+server/temp/*
+!server/temp/.gitkeep
 
 # Editor / tooling lokal
 .claude/
