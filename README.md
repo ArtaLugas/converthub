@@ -65,7 +65,8 @@ Fitur inti:
 | | → `avif` · `tiff` · `gif` · `ico`; sumber `heic` · `svg` · `bmp` | 🌐 Server | sharp · png-to-ico |
 | **Audio** | `mp3` · `wav` · `aac` · `flac` · `ogg` · `m4a` saling-silang | 🌐 Server | FFmpeg |
 | **Video** | `mp4` · `mov` · `webm` · `avi` · `mkv` → mp4/webm, → mp3/wav, → gif | 🌐 Server | FFmpeg |
-| **Dokumen** | `pdf` · `docx` · `doc` · `odt` · `rtf` · `txt` · `html` ↔ ; `md` → html | 🌐 Server / 🖥️ Browser | LibreOffice · marked |
+| **Dokumen** | `docx` · `doc` · `odt` · `rtf` · `txt` · `html` → PDF & antar-format; `md` → html | 🌐 Server / 🖥️ Browser | LibreOffice · marked |
+| | `pdf` → `docx` · `txt` (teks bisa diedit) | 🌐 Server | pdf2docx · PyMuPDF |
 | **Data** | `csv` · `json` · `yaml` · `xml` · `xlsx` saling-silang | 🖥️ Browser | yaml · SheetJS · fast-xml-parser |
 | **Kompresi** | gambar (kualitas/WebP) · PDF (preset) · video (preset) | 🌐 Server | sharp · Ghostscript · FFmpeg |
 | **Apa pun** | → `zip` | 🖥️ Browser | fflate |
@@ -85,7 +86,7 @@ Antarmuka tunggal, dark-mode, dengan area drag-and-drop besar sebagai fokus utam
 
 **Frontend:** React 18 · Vite 6 · Tailwind CSS 3 · fflate · SheetJS · yaml · fast-xml-parser · marked
 **Backend:** Node.js · Express 4 · Multer · sharp · pdf-lib · png-to-ico
-**Tool eksternal (opsional, jalur server):** FFmpeg · Ghostscript · LibreOffice
+**Tool eksternal (opsional, jalur server):** FFmpeg · Ghostscript · LibreOffice · Python (pdf2docx + PyMuPDF)
 
 ---
 
@@ -101,15 +102,18 @@ Antarmuka tunggal, dark-mode, dengan area drag-and-drop besar sebagai fokus utam
 |---|---|
 | **FFmpeg** | Semua audio & video, kompres video |
 | **Ghostscript** | Kompres PDF |
-| **LibreOffice** | Konversi dokumen (DOCX/PDF/ODT/RTF/HTML/TXT) |
+| **LibreOffice** | Konversi dokumen (DOCX/ODT/RTF/HTML/TXT → PDF, dll) |
+| **Python 3 + `pdf2docx`** | PDF → DOCX / TXT |
 
 Pemasangan tool eksternal:
 
 | OS | Perintah |
 |---|---|
-| **Windows** | `winget install Gyan.FFmpeg`<br>`winget install ArtifexSoftware.GhostScript`<br>`winget install TheDocumentFoundation.LibreOffice` |
-| **macOS** | `brew install ffmpeg ghostscript`<br>`brew install --cask libreoffice` |
-| **Linux (Debian/Ubuntu)** | `sudo apt install ffmpeg ghostscript libreoffice` |
+| **Windows** | `winget install Gyan.FFmpeg`<br>`winget install ArtifexSoftware.GhostScript`<br>`winget install TheDocumentFoundation.LibreOffice`<br>`pip install pdf2docx` |
+| **macOS** | `brew install ffmpeg ghostscript`<br>`brew install --cask libreoffice`<br>`pip3 install pdf2docx` |
+| **Linux (Debian/Ubuntu)** | `sudo apt install ffmpeg ghostscript libreoffice python3-pip`<br>`pip3 install pdf2docx` |
+
+> **Catatan PDF → DOCX:** LibreOffice tidak dapat mengubah PDF menjadi dokumen yang bisa diedit (PDF dibuka sebagai gambar/Draw). ConvertHub memakai **`pdf2docx`** (Python) untuk hasil DOCX yang benar-benar dapat diedit.
 
 > Setelah memasang tool baru, buka **terminal baru** agar `PATH` diperbarui, lalu jalankan ulang aplikasi.
 

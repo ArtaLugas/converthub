@@ -17,6 +17,7 @@ import { convertImage, convertToIco } from './services/image.js';
 import { compressPdf } from './services/pdf.js';
 import { convertMedia } from './services/media.js';
 import { compressImage, compressVideo } from './services/compress.js';
+import { pdfToDocx, pdfToText } from './services/pdftools.js';
 
 const app = express();
 app.use(cors());
@@ -46,6 +47,11 @@ app.get('/api/health', async (_req, res) => {
       libreoffice: { available: d.libreoffice, hint: d.libreoffice ? null : installHint('libreoffice') },
       ghostscript: { available: d.ghostscript, hint: d.ghostscript ? null : installHint('ghostscript') },
       ffmpeg: { available: d.ffmpeg, hint: d.ffmpeg ? null : installHint('ffmpeg') },
+      pdf2docx: {
+        available: d.pdf2docx,
+        // Bila Python ada tapi modul belum: cukup pip install.
+        hint: d.pdf2docx ? null : d.pythonBin ? 'Jalankan: `pip install pdf2docx`.' : installHint('pdf2docx'),
+      },
     },
     limits: { maxUploadBytes: MAX_UPLOAD_BYTES },
   });
@@ -76,6 +82,10 @@ app.post('/api/convert', upload.single('file'), async (req, res) => {
       out = await convertMedia(inputPath, base, target, op || 'audio', options);
     } else if (engine === 'libreoffice') {
       out = await convertDocument(inputPath, base, target);
+    } else if (engine === 'pdf2docx') {
+      out = await pdfToDocx(inputPath, base);
+    } else if (engine === 'pdftext') {
+      out = await pdfToText(inputPath, base);
     } else if (engine === 'ico') {
       out = await convertToIco(inputPath, base);
     } else if (engine === 'sharp') {
@@ -276,9 +286,10 @@ await initTemp();
 const server = app.listen(PORT, () => {
   console.log(`\n  ConvertHub backend berjalan di http://localhost:${PORT}`);
   detectDependencies({ fresh: true }).then((d) => {
-    console.log(`  LibreOffice: ${d.libreoffice ? 'terdeteksi ✓' : 'tidak terpasang ✗ (DOCX↔PDF nonaktif)'}`);
+    console.log(`  LibreOffice: ${d.libreoffice ? 'terdeteksi ✓' : 'tidak terpasang ✗ (konversi dokumen nonaktif)'}`);
     console.log(`  Ghostscript: ${d.ghostscript ? 'terdeteksi ✓' : 'tidak terpasang ✗ (fallback pdf-lib)'}`);
-    console.log(`  FFmpeg: ${d.ffmpeg ? 'terdeteksi ✓' : 'tidak terpasang ✗ (video→MP3 nonaktif)'}\n`);
+    console.log(`  FFmpeg: ${d.ffmpeg ? 'terdeteksi ✓' : 'tidak terpasang ✗ (audio/video nonaktif)'}`);
+    console.log(`  pdf2docx: ${d.pdf2docx ? 'terdeteksi ✓' : 'tidak terpasang ✗ (PDF→DOCX/TXT nonaktif)'}\n`);
   });
 });
 

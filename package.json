@@ -14,7 +14,7 @@
         "client": "npm --prefix client run dev"
     },
     "devDependencies": {
-        "concurrently": "^9.1.0"
+        "concurrently": "^9.2.3"
     },
     "engines": {
         "node": ">=18"

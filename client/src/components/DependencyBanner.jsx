@@ -6,9 +6,10 @@ export default function DependencyBanner({ health }) {
   if (missing.length === 0) return null;
 
   const affected = {
-    libreoffice: 'DOCX↔PDF',
-    ffmpeg: 'Video→MP3',
-    ghostscript: 'Kompres PDF (memakai fallback)',
+    libreoffice: 'konversi dokumen (DOCX/ODT/RTF → PDF, dll)',
+    ffmpeg: 'audio & video',
+    ghostscript: 'kompres PDF (memakai fallback)',
+    pdf2docx: 'PDF → DOCX / TXT',
   };
 
   return (

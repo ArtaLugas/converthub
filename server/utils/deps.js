@@ -1,7 +1,8 @@
 // Deteksi ketersediaan tool eksternal untuk jalur server-side.
-//   - LibreOffice (soffice)  → DOCX↔PDF berfidelitas tinggi
+//   - LibreOffice (soffice)  → konversi dokumen (DOCX/ODT/RTF/… → PDF, dll)
 //   - Ghostscript            → kompresi PDF
-//   - FFmpeg                 → ekstrak audio (video→MP3)
+//   - FFmpeg                 → audio & video
+//   - Python + pdf2docx      → PDF → DOCX / TXT (LibreOffice tak bisa arah ini)
 // Hasil di-cache; dipakai untuk pesan error ramah + instruksi instalasi per-OS.
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -24,6 +25,9 @@ const SOFFICE_CANDIDATES =
 
 const GS_CANDIDATES =
   process.platform === 'win32' ? ['gswin64c', 'gswin32c', 'gs'] : ['gs'];
+
+const PYTHON_CANDIDATES =
+  process.platform === 'win32' ? ['python', 'py', 'python3'] : ['python3', 'python'];
 
 let cache = null;
 
@@ -49,12 +53,42 @@ async function resolveFrom(candidates, versionArgs) {
   return null;
 }
 
+// Python untuk PDF→DOCX/TXT (pdf2docx + PyMuPDF). Cari biner python yang jalan,
+// lalu cek modul pdf2docx & fitz tersedia (tanpa meng-import penuh agar cepat).
+async function resolvePython() {
+  for (const bin of PYTHON_CANDIDATES) {
+    try {
+      await execFileAsync(bin, ['--version'], { timeout: 8000 });
+      return bin;
+    } catch (err) {
+      if (err.code !== 'ENOENT') return bin; // ada, tapi exit non-zero
+    }
+  }
+  return null;
+}
+
+async function hasPdf2docx(pythonBin) {
+  if (!pythonBin) return false;
+  try {
+    await execFileAsync(
+      pythonBin,
+      ['-c', "import importlib.util as u,sys; sys.exit(0 if u.find_spec('pdf2docx') and u.find_spec('fitz') else 1)"],
+      { timeout: 12000 },
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function detectDependencies({ fresh = false } = {}) {
   if (cache && !fresh) return cache;
 
   const sofficeBin = await resolveFrom(SOFFICE_CANDIDATES, ['--version']);
   const ghostscriptBin = await resolveFrom(GS_CANDIDATES, ['--version']);
   const ffmpeg = await canRun('ffmpeg', ['-version']);
+  const pythonBin = await resolvePython();
+  const pdf2docx = await hasPdf2docx(pythonBin);
 
   cache = {
     libreoffice: Boolean(sofficeBin),
@@ -62,6 +96,8 @@ export async function detectDependencies({ fresh = false } = {}) {
     ghostscript: Boolean(ghostscriptBin),
     ghostscriptBin,
     ffmpeg,
+    pythonBin,
+    pdf2docx,
   };
   return cache;
 }
@@ -81,6 +117,11 @@ export const INSTALL_HINTS = {
     win32: 'Windows: `winget install Gyan.FFmpeg` (lalu restart terminal).',
     darwin: 'macOS: `brew install ffmpeg`.',
     linux: 'Linux: `sudo apt install ffmpeg`.',
+  },
+  pdf2docx: {
+    win32: 'Windows: pasang Python 3 (https://python.org), lalu `pip install pdf2docx`.',
+    darwin: 'macOS: `brew install python`, lalu `pip3 install pdf2docx`.',
+    linux: 'Linux: `sudo apt install python3-pip`, lalu `pip3 install pdf2docx`.',
   },
 };
 

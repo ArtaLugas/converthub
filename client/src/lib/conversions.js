@@ -126,11 +126,11 @@ export const CONVERSIONS = {
   rtf: [doc('pdf', 'PDF'), doc('docx', 'DOCX'), doc('odt', 'ODT'), doc('txt', 'TXT')],
   txt: [doc('pdf', 'PDF'), doc('docx', 'DOCX'), doc('odt', 'ODT'), doc('html', 'HTML')],
   html: [doc('pdf', 'PDF'), doc('docx', 'DOCX'), doc('odt', 'ODT'), doc('txt', 'TXT')],
+  // PDF → format editable memakai pdf2docx/PyMuPDF (LibreOffice tak bisa: PDF
+  // dibuka sebagai dokumen Draw, bukan teks Writer).
   pdf: [
-    doc('docx', 'Word (DOCX)'),
-    doc('odt', 'ODT'),
-    doc('txt', 'TXT'),
-    doc('html', 'HTML'),
+    t('docx', 'Word (DOCX)', 'document', 'server', { engine: 'pdf2docx' }),
+    t('txt', 'Teks (TXT)', 'document', 'server', { engine: 'pdftext' }),
     t('pdf', 'PDF terkompres', 'document', 'server', { engine: 'ghostscript', op: 'compress', options: [PDF_PRESET], note: 'perkecil ukuran' }),
   ],
   md: [t('html', 'HTML', 'document', 'client', { clientOp: 'md2html' })],
@@ -172,6 +172,7 @@ export function requiredDep(conv) {
   if (conv.engine === 'libreoffice') return 'libreoffice';
   if (conv.engine === 'ghostscript') return 'ghostscript';
   if (conv.engine === 'ffmpeg') return 'ffmpeg';
+  if (conv.engine === 'pdf2docx' || conv.engine === 'pdftext') return 'pdf2docx';
   return null; // sharp/ico: bawaan server
 }
 

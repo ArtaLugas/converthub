@@ -1,6 +1,10 @@
 # Dependencies
 node_modules/
 
+# Python (script pdf2docx)
+__pycache__/
+*.pyc
+
 # Build output
 dist/
 build/
