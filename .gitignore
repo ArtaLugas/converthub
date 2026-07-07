@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# File temporer hasil unggah & konversi — jangan pernah di-commit
+converthub/server/temp/
+!converthub/server/temp/.gitkeep
+
+# Editor / tooling lokal
+.claude/
+.vscode/
+.idea/
+
+# Environment & log
+.env
+.env.local
+.env.*.local
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db

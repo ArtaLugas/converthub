@@ -1,0 +1,14 @@
+# Normalisasi akhir baris agar konsisten lintas OS
+* text=auto eol=lf
+
+# File biner — jangan diubah
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.ico binary
+*.woff2 binary
+*.pdf binary
+*.mp4 binary
+*.mp3 binary

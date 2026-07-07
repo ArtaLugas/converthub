@@ -1,0 +1,15 @@
+{
+  "name": "converthub-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Repo ConvertHub — konversi & kompresi file. Aplikasi berada di converthub/.",
+  "scripts": {
+    "install:all": "cd converthub && npm run install:all",
+    "dev": "cd converthub && npm run dev",
+    "start": "cd converthub && npm run dev",
+    "build": "cd converthub && npm run build"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
