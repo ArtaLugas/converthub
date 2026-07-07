@@ -58,8 +58,9 @@ app.get('/api/health', async (_req, res) => {
 });
 
 // --- Endpoint konversi server-side -----------------------------------------
-// Body (multipart): file, target (ekstensi tujuan), op (opsional: 'compress'|'extract-audio'),
-//                   options (JSON).
+// Body (multipart): file, target (ekstensi tujuan), engine (sharp|ico|ffmpeg|
+//   libreoffice|ghostscript|pdf2docx|pdftext), op (opsional: 'audio'|'video'|
+//   'gif'|'compress'), options (JSON).
 app.post('/api/convert', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Tidak ada file yang diunggah.' });
 
@@ -248,7 +249,13 @@ app.get('/api/download/:token', (req, res) => {
     return res.status(404).json({ error: 'File tidak ditemukan atau sudah dibersihkan.' });
   }
   res.setHeader('Content-Type', entry.mime || 'application/octet-stream');
-  res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(entry.downloadName)}"`);
+  // RFC 6266: fallback ASCII untuk browser lama + filename* UTF-8 untuk nama
+  // berspasi/non-ASCII agar tak muncul %20 dsb pada nama file unduhan.
+  const asciiName = entry.downloadName.replace(/[^\x20-\x7E]/g, '_').replace(/["\\]/g, '_');
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename="${asciiName}"; filename*=UTF-8''${encodeURIComponent(entry.downloadName)}`,
+  );
   const stream = fs.createReadStream(entry.filePath);
   stream.pipe(res);
   stream.on('error', () => res.destroy());

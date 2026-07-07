@@ -3,6 +3,7 @@
 //   • Video via FFmpeg (preset CRF) dengan progres real-time
 // Kompresi PDF memakai compressPdf() di services/pdf.js.
 import path from 'node:path';
+import fsp from 'node:fs/promises';
 import sharp from 'sharp';
 import { spawn, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -42,7 +43,12 @@ export async function compressImage(inputPath, baseName, { quality = 75, toWebp 
   }
 
   const outputPath = path.join(TEMP_DIR, `${nanoid()}.${ext}`);
-  await pipeline.toFile(outputPath);
+  try {
+    await pipeline.toFile(outputPath);
+  } catch (err) {
+    await fsp.unlink(outputPath).catch(() => {});
+    throw err;
+  }
   return { outputPath, outputName: `${baseName}-compressed.${ext}`, mime };
 }
 
@@ -86,41 +92,46 @@ export async function compressVideo(inputPath, baseName, { preset = 'balanced', 
   const outputPath = path.join(TEMP_DIR, `${nanoid()}.mp4`);
   const duration = await probeDuration(inputPath);
 
-  await new Promise((resolve, reject) => {
-    const ff = spawn('ffmpeg', [
-      '-y',
-      '-i', inputPath,
-      '-c:v', 'libx264',
-      '-crf', String(conf.crf),
-      '-preset', conf.preset,
-      '-c:a', 'aac',
-      '-b:a', '128k',
-      '-movflags', '+faststart',
-      '-pix_fmt', 'yuv420p',
-      outputPath,
-    ]);
+  try {
+    await new Promise((resolve, reject) => {
+      const ff = spawn('ffmpeg', [
+        '-y',
+        '-i', inputPath,
+        '-c:v', 'libx264',
+        '-crf', String(conf.crf),
+        '-preset', conf.preset,
+        '-c:a', 'aac',
+        '-b:a', '128k',
+        '-movflags', '+faststart',
+        '-pix_fmt', 'yuv420p',
+        outputPath,
+      ]);
 
-    let stderr = '';
-    ff.stderr.on('data', (chunk) => {
-      const text = chunk.toString();
-      stderr += text;
-      // FFmpeg menulis "time=HH:MM:SS.xx" ke stderr saat memproses.
-      const m = /time=(\d+:\d+:\d+\.\d+)/.exec(text);
-      if (m && duration > 0 && typeof onProgress === 'function') {
-        const pct = Math.min(99, Math.round((timemarkToSeconds(m[1]) / duration) * 100));
-        onProgress(pct);
-      }
+      let stderr = '';
+      ff.stderr.on('data', (chunk) => {
+        const text = chunk.toString();
+        stderr += text;
+        // FFmpeg menulis "time=HH:MM:SS.xx" ke stderr saat memproses.
+        const m = /time=(\d+:\d+:\d+\.\d+)/.exec(text);
+        if (m && duration > 0 && typeof onProgress === 'function') {
+          const pct = Math.min(99, Math.round((timemarkToSeconds(m[1]) / duration) * 100));
+          onProgress(pct);
+        }
+      });
+      ff.on('error', reject);
+      ff.on('close', (code) => {
+        if (code === 0) {
+          onProgress?.(100);
+          resolve();
+        } else {
+          reject(new Error(`FFmpeg gagal (kode ${code}). ${stderr.slice(-300)}`));
+        }
+      });
     });
-    ff.on('error', reject);
-    ff.on('close', (code) => {
-      if (code === 0) {
-        onProgress?.(100);
-        resolve();
-      } else {
-        reject(new Error(`FFmpeg gagal (kode ${code}). ${stderr.slice(-300)}`));
-      }
-    });
-  });
+  } catch (err) {
+    await fsp.unlink(outputPath).catch(() => {}); // bersihkan output parsial
+    throw err;
+  }
 
   return { outputPath, outputName: `${baseName}-compressed.mp4`, mime: 'video/mp4' };
 }

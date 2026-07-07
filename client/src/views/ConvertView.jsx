@@ -95,7 +95,16 @@ export default function ConvertView({ health, active = true }) {
   }, [items]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const cancel = useCallback(() => abortRef.current?.abort(), []);
-  const retryOne = useCallback((item) => processOne({ ...item }, undefined), []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Retry lewat alur proses yang sama (mode "processing" + bisa dibatalkan).
+  const retryOne = useCallback((item) => {
+    const controller = new AbortController();
+    abortRef.current = controller;
+    setProcessing(true);
+    processOne({ ...item }, controller.signal).finally(() => {
+      setProcessing(false);
+      abortRef.current = null;
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const downloadOne = useCallback((item) => item.result?.blob && downloadBlob(item.result.blob, item.result.outputName), []);
 
   const downloadAll = useCallback(async () => {

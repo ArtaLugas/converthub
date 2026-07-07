@@ -63,8 +63,10 @@ export async function convertDocument(inputPath, baseName, target) {
   try {
     await execFileAsync(deps.sofficeBin, args, { timeout: 3 * 60 * 1000 });
 
-    // LibreOffice menamai output sesuai basename input + ekstensi tujuan.
-    const produced = (await fsp.readdir(outDir))[0];
+    // LibreOffice bisa menghasilkan >1 file (mis. HTML + gambar aset); pilih
+    // file yang berekstensi tujuan, bukan sekadar entri pertama (readdir tak urut).
+    const entries = await fsp.readdir(outDir);
+    const produced = entries.find((f) => f.toLowerCase().endsWith(`.${target}`)) || entries[0];
     if (!produced) throw new Error('LibreOffice tidak menghasilkan file keluaran.');
 
     const finalPath = path.join(TEMP_DIR, `${workId}.${target}`);

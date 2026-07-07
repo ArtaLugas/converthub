@@ -50,6 +50,7 @@ export async function convertImage(inputPath, baseName, target, { quality = 85 }
   try {
     await pipelineFor(image, out.ext, q).toFile(outputPath);
   } catch (err) {
+    await fsp.unlink(outputPath).catch(() => {}); // bersihkan output parsial
     if (/heif|heic|unsupported|compile|bmp/i.test(err.message)) {
       const e = new Error(
         `Gagal memproses gambar: format sumber mungkin tidak didukung build sharp di sistem ini (${err.message}).`,
@@ -64,12 +65,17 @@ export async function convertImage(inputPath, baseName, target, { quality = 85 }
 
 // Konversi ke ICO (favicon) — raster apa pun → PNG multi-ukuran → ICO.
 export async function convertToIco(inputPath, baseName) {
-  const pngBuf = await sharp(inputPath, { failOn: 'none' })
-    .resize(256, 256, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
-    .png()
-    .toBuffer();
-  const icoBuf = await pngToIco([pngBuf]);
   const outputPath = path.join(TEMP_DIR, `${nanoid()}.ico`);
-  await fsp.writeFile(outputPath, icoBuf);
+  try {
+    const pngBuf = await sharp(inputPath, { failOn: 'none' })
+      .resize(256, 256, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+      .png()
+      .toBuffer();
+    const icoBuf = await pngToIco([pngBuf]);
+    await fsp.writeFile(outputPath, icoBuf);
+  } catch (err) {
+    await fsp.unlink(outputPath).catch(() => {});
+    throw err;
+  }
   return { outputPath, outputName: `${baseName}.ico`, mime: 'image/x-icon' };
 }

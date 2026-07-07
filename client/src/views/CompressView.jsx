@@ -54,8 +54,9 @@ export default function CompressView({ health, active = true }) {
     try {
       let blob;
       let outputName;
+      let isArchive = false;
       if (item.category === 'image' || item.category === 'document') {
-        const server = await compressServer(item.file, item.category === 'document' ? 'pdf' : 'image', item.options);
+        const server = await compressServer(item.file, item.category === 'document' ? 'pdf' : 'image', item.options, signal);
         blob = await fetchResultBlob(server.token);
         outputName = server.downloadName;
       } else if (item.category === 'audiovideo') {
@@ -63,12 +64,14 @@ export default function CompressView({ health, active = true }) {
         blob = await fetchResultBlob(server.token);
         outputName = server.downloadName;
       } else {
-        // archive → ZIP di browser
+        // archive → ZIP di browser (mengarsipkan, bukan memperkecil)
+        isArchive = true;
         const out = await convertClientSide(item.file, { clientOp: 'zip' }, {});
         blob = out.blob;
         outputName = out.outputName;
       }
-      const savedPercent = item.size > 0 ? Math.round((1 - blob.size / item.size) * 1000) / 10 : 0;
+      // Untuk arsip, persentase "hemat" menyesatkan (ZIP file terkompres bisa membesar) → null.
+      const savedPercent = isArchive ? null : item.size > 0 ? Math.round((1 - blob.size / item.size) * 1000) / 10 : 0;
       patch(item.id, { status: 'done', progress: 100, result: { blob, outputName, outputSize: blob.size, savedPercent } });
     } catch (err) {
       if (err.name === 'AbortError') return patch(item.id, { status: 'ready', progress: 0 });
@@ -91,7 +94,16 @@ export default function CompressView({ health, active = true }) {
   }, [items]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const cancel = useCallback(() => abortRef.current?.abort(), []);
-  const retryOne = useCallback((item) => processOne({ ...item }, undefined), []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Retry lewat alur proses yang sama (mode "processing" + bisa dibatalkan, termasuk video).
+  const retryOne = useCallback((item) => {
+    const controller = new AbortController();
+    abortRef.current = controller;
+    setProcessing(true);
+    processOne({ ...item }, controller.signal).finally(() => {
+      setProcessing(false);
+      abortRef.current = null;
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const downloadOne = useCallback((item) => item.result?.blob && downloadBlob(item.result.blob, item.result.outputName), []);
 
   const downloadAll = useCallback(async () => {
@@ -173,7 +185,8 @@ export default function CompressView({ health, active = true }) {
               <span>{items.length} file</span>
               {doneCount > 0 && (
                 <span className="text-emerald-400">
-                  {formatBytes(totalOriginal)} → {formatBytes(totalOut)} (−{totalSaved}%)
+                  {formatBytes(totalOriginal)} → {formatBytes(totalOut)} ({totalSaved >= 0 ? '−' : '+'}
+                  {Math.abs(totalSaved)}%)
                 </span>
               )}
               <button onClick={clearAll} disabled={processing} className="text-slate-500 transition-colors hover:text-slate-300 disabled:opacity-40">

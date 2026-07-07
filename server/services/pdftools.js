@@ -2,6 +2,7 @@
 // LibreOffice tidak bisa mengonversi PDF ke format Writer yang bisa diedit
 // (PDF dibuka sebagai dokumen Draw), jadi arah ini memakai pdf2docx.
 import path from 'node:path';
+import fsp from 'node:fs/promises';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
@@ -25,11 +26,16 @@ async function runPdf(mode, inputPath, baseName, ext, mime) {
   }
 
   const outputPath = path.join(TEMP_DIR, `${nanoid()}.${ext}`);
-  // pdf2docx menulis banyak log ke stdout → naikkan maxBuffer.
-  await execFileAsync(deps.pythonBin, [SCRIPT, mode, inputPath, outputPath], {
-    timeout: 5 * 60 * 1000,
-    maxBuffer: 32 * 1024 * 1024,
-  });
+  try {
+    // pdf2docx menulis banyak log ke stdout → naikkan maxBuffer.
+    await execFileAsync(deps.pythonBin, [SCRIPT, mode, inputPath, outputPath], {
+      timeout: 5 * 60 * 1000,
+      maxBuffer: 32 * 1024 * 1024,
+    });
+  } catch (err) {
+    await fsp.unlink(outputPath).catch(() => {}); // bersihkan output parsial
+    throw err;
+  }
   return { outputPath, outputName: `${baseName}.${ext}`, mime };
 }
 

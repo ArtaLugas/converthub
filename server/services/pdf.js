@@ -47,9 +47,14 @@ export async function compressPdf(inputPath, baseName, { preset = 'ebook' } = {}
       await withGhostscript(deps.ghostscriptBin, inputPath, outputPath, preset);
       return { outputPath, outputName: `${baseName}.pdf`, mime: 'application/pdf', engine: 'ghostscript' };
     } catch {
-      /* jatuh ke fallback */
+      /* jatuh ke fallback pdf-lib (Ghostscript mungkin meninggalkan file parsial) */
     }
   }
-  await withPdfLib(inputPath, outputPath);
+  try {
+    await withPdfLib(inputPath, outputPath);
+  } catch (err) {
+    await fsp.unlink(outputPath).catch(() => {}); // bersihkan output parsial (mis. sisa Ghostscript)
+    throw err;
+  }
   return { outputPath, outputName: `${baseName}.pdf`, mime: 'application/pdf', engine: 'pdf-lib' };
 }

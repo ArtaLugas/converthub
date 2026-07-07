@@ -146,7 +146,7 @@ async function parseSource(file) {
   throw new Error(`Format data tidak dikenali: ${ext}`);
 }
 
-function serializeTarget(value, target, srcBase) {
+function serializeTarget(value, target) {
   switch (target) {
     case 'json':
       return { data: new Blob([JSON.stringify(value, null, 2)], { type: 'application/json' }), mime: 'application/json' };
@@ -177,7 +177,7 @@ function serializeTarget(value, target, srcBase) {
 
 async function convertData(file, target) {
   const value = await parseSource(file);
-  const { data, mime } = serializeTarget(value, target, baseName(file.name));
+  const { data, mime } = serializeTarget(value, target);
   return { blob: data, outputName: `${baseName(file.name)}.${target}`, mime };
 }
 

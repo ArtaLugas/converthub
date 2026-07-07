@@ -3,6 +3,7 @@
 //   op 'video' → mp4/webm
 //   op 'gif'   → video → GIF (dengan palet untuk kualitas)
 import path from 'node:path';
+import fsp from 'node:fs/promises';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { nanoid } from 'nanoid';
@@ -73,6 +74,17 @@ export async function convertMedia(inputPath, baseName, target, op, { bitrate = 
     mime = target === 'webm' ? 'video/webm' : 'video/mp4';
   }
 
-  await execFileAsync('ffmpeg', ['-y', '-i', inputPath, ...args, outputPath], { timeout: 15 * 60 * 1000 });
+  try {
+    await execFileAsync('ffmpeg', ['-y', '-i', inputPath, ...args, outputPath], { timeout: 15 * 60 * 1000 });
+  } catch (err) {
+    await fsp.unlink(outputPath).catch(() => {}); // bersihkan output parsial
+    // Video tanpa trek audio saat diminta ekstrak audio → pesan ramah.
+    if (op === 'audio' && /does not contain any stream|Output file .* does not contain/i.test(err.message)) {
+      const e = new Error('Video ini tidak memiliki trek audio, sehingga tidak bisa dikonversi ke audio.');
+      e.status = 400;
+      throw e;
+    }
+    throw err;
+  }
   return { outputPath, outputName: `${baseName}.${target}`, mime };
 }

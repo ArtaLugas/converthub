@@ -75,13 +75,18 @@ export default function CompressCard({ item, health, disabled, onOptionsChange, 
                 <span className="text-slate-500 line-through decoration-slate-600">{formatBytes(size)}</span>
                 <ArrowIcon className="h-3.5 w-3.5 text-slate-600" />
                 <span className="font-semibold text-slate-100">{formatBytes(result.outputSize)}</span>
-                <span
-                  className={`rounded-md px-1.5 py-0.5 text-xs font-semibold ${
-                    result.savedPercent >= 0 ? 'bg-emerald-500/12 text-emerald-300' : 'bg-white/[0.06] text-slate-300'
-                  }`}
-                >
-                  {result.savedPercent >= 0 ? `−${result.savedPercent}%` : `+${Math.abs(result.savedPercent)}%`}
-                </span>
+                {result.savedPercent == null ? (
+                  // Arsip → tampilkan label netral, bukan persentase yang menyesatkan.
+                  <span className="rounded-md bg-white/[0.06] px-1.5 py-0.5 text-xs font-semibold text-slate-300">ZIP</span>
+                ) : (
+                  <span
+                    className={`rounded-md px-1.5 py-0.5 text-xs font-semibold ${
+                      result.savedPercent >= 0 ? 'bg-emerald-500/12 text-emerald-300' : 'bg-white/[0.06] text-slate-300'
+                    }`}
+                  >
+                    {result.savedPercent >= 0 ? `−${result.savedPercent}%` : `+${Math.abs(result.savedPercent)}%`}
+                  </span>
+                )}
               </div>
               <button onClick={() => onDownload(item)} className="btn-primary ml-auto px-3 py-1.5 text-xs">
                 <DownloadIcon className="h-3.5 w-3.5" />

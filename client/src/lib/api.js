@@ -32,12 +32,12 @@ export async function convertServer(file, conv, options, signal) {
 }
 
 // Kompresi gambar / PDF (sinkron). Mengembalikan { token, outputSize, savedPercent, ... }.
-export async function compressServer(file, category, options) {
+export async function compressServer(file, category, options, signal) {
   const form = new FormData();
   form.append('file', file);
   form.append('category', category);
   form.append('options', JSON.stringify(options || {}));
-  const res = await fetch('/api/compress', { method: 'POST', body: form });
+  const res = await fetch('/api/compress', { method: 'POST', body: form, signal });
   if (!res.ok) throw await parseError(res);
   return res.json();
 }
@@ -105,14 +105,4 @@ export function downloadBlob(blob, filename) {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
-// Memicu unduhan hasil server langsung via token (server akan menghapus file setelahnya).
-export function downloadToken(token, filename) {
-  const a = document.createElement('a');
-  a.href = downloadUrl(token);
-  if (filename) a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
 }
